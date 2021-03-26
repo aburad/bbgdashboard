@@ -62,7 +62,7 @@ try:
     if dtype =='Stored':
         
         b = bbgData()
-        b = b.read('b.bbgData')
+        b.populate()
         mkt_num = st.sidebar.radio("", ('Cross Mkt','Single Mkt')) 
         if mkt_num=='Cross Mkt':
             countries = st.multiselect("Choose countries", curr, ["KRW", "USD"] )
