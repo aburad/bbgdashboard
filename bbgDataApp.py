@@ -106,8 +106,12 @@ try:
                     image4 = Image.open('plots/range1.png')
                     st.image(image4,caption='Historical Range')
                     fig = plotBarBox(spread,count=count,spread_name=trade,charts=[1,0,0],labelcount=3)
-        
+                    
                     st.pyplot(fig)
+                    plotChange(spread,n=[1,5,22],diff=0, title_prefix=trade,filename='plots/spreacchange.png',mult=1)
+                    image10 = Image.open('plots/spreadchange.png')
+                    st.image(image10,caption='Change:')
+
                     st.line_chart(spread.tail(count))
         if mkt_num=='Single Mkt':
             country = st.selectbox("Choose countries", curr )
