@@ -23,7 +23,7 @@ from scipy import stats
 
 class bbgData:
 
-    def __init__(self,tickers=[],sdate='20150101',filepath="\\data\BBGticker.xls",flds=['PX_LAST'],fill='ffill'):
+    def __init__(self,tickers=[],sdate='20150101',filepath="/data/BBGticker.xls",flds=['PX_LAST'],fill='ffill'):
         self.bbgticker = pd.DataFrame()
         self.fxmult = pd.DataFrame()
         self.dfbbg=pd.DataFrame()
