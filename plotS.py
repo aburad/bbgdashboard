@@ -16,7 +16,7 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 import seaborn as sns
 import matplotlib.dates as mdates
 import re
-import talib
+#import talib
 import pandas_ta as ta
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import summary_table
@@ -483,8 +483,8 @@ def plotmacd(df, count=200,title='',fname=''):
     plotS.spreadPlot1(exp3.tail(count).index,exp3.tail(count),macd.tail(count),df.tail(count),xlabel='Date',ylabel='MACD & Singal',y2label='MACD ',y1label='Signal',y3label=title, title=' MACD vs Signal: '+title  , filename=fname,g2type='line')
     return (macd, exp3)
 
-def plotrsi(df, count=200,title='',fname=''):
-    return pd.DataFrame(data=talib.RSI(df.iloc[:,0].to_numpy()),index=df.index, columns=['rsi'])
+#def plotrsi(df, count=200,title='',fname=''):
+ #   return pd.DataFrame(data=talib.RSI(df.iloc[:,0].to_numpy()),index=df.index, columns=['rsi'])
 
 def genmacdsignal(macd, signal):
     return
