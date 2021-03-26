@@ -321,7 +321,7 @@ class bbgData:
         
         return bbgticker,fxmult;
     
-    def populate(self):
+    def populate(self,curr='',flds=['PX_LAST'],start='20150101',end='',freq='DAILY',maxDataPoints=5000,fill='ffill',verbose=0):
         self.dfbbg=self.readdfbbg('b.bbgData')
         self.bbgticker,self.fxmult=self.readTickers1()
         self.secs = self.dfbbg.columns.to_list()
