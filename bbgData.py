@@ -4,7 +4,7 @@ Created on Thu Aug 13 23:41:00 2020
 
 @author: Ajit
 """
-import blpapi
+#import blpapi
 from optparse import OptionParser
 import pandas as pd
 import os
@@ -56,6 +56,12 @@ class bbgData:
             b = bbgData()
             b = pickle.load(inputfile)
             return b
+
+    def readdfbbg(self,file):
+        with open(file, 'rb') as inputfile:
+            self.dfbbg = pickle.load(inputfile)
+
+
 
     def getbbg(self,type_='',currency='',tenor=[],fill='0'):
         if currency=='':
@@ -315,140 +321,11 @@ class bbgData:
         
         return bbgticker,fxmult;
     
-    def populate(self,curr='',flds=['PX_LAST'],start='20150101',end='',freq='DAILY',maxDataPoints=5000,fill='ffill',verbose=0):
-        if end=='':
-            end = datetime.strftime(date.today(), '%Y%m%d')
-        if self.bbgticker.empty:
-            if len(self.secs)==0:
-                self.bbgticker,self.fxmult=self.readTickers1()            
-        if curr != '':
-            self.bbgticker=self.bbgticker[self.bbgticker.Code==curr]
-        if len(self.secs)==0:
-            secs=self.bbgticker.bbgticker.to_list()
-        else:
-            secs=self.secs
-        #print(secs)
-        options = self.parseCmdLine()
-        fillMethod = "NIL_VALUE"
-        nonTradingDayFillOption = "ACTIVE_DAYS_ONLY"
-        
-        if fill == 'ffill':
-            fillMethod='PREVIOUS_VALUE'
-            nonTradingDayFillOption = "NON_TRADING_WEEKDAYS"
-        # Fill SessionOptions
-        sessionOptions = blpapi.SessionOptions()
-        sessionOptions.setServerHost(options.host)
-        sessionOptions.setServerPort(options.port)
-        if verbose == 1:
-            print("Connecting to %s:%s" % (options.host, options.port))
-        # Create a Session
-        session = blpapi.Session(sessionOptions)
-    
-        # Start a Session
-        if not session.start():
-            print("Failed to start session.")
-            return
-    
-        try:
-            # Open service to get historical data from
-            if not session.openService("//blp/refdata"):
-                print("Failed to open //blp/refdata")
-                return
-    
-            # Obtain previously opened service
-            refDataService = session.getService("//blp/refdata")
-    
-            # Create and fill the request for the historical data
-            request = refDataService.createRequest("HistoricalDataRequest")
-            for sec in secs:
-                request.getElement("securities").appendValue(sec)
-            for fld in flds:
-                request.getElement("fields").appendValue(fld)
-            #request.set("periodicityAdjustment", "ACTUAL")
-            request.set("periodicitySelection", freq)
-            request.set("startDate", start)
-            request.set("endDate", end)
-            request.set("maxDataPoints", maxDataPoints)
-            request.set("periodicityAdjustment", "ACTUAL")
-            request.set("nonTradingDayFillOption", nonTradingDayFillOption)
-            #request.set("nonTradingDayFillMethod", "PREVIOUS_VALUE")
-            request.set("nonTradingDayFillMethod", fillMethod)
-            # Send the request
-            if verbose == 1:
-                print("Sending Request:", request)
-    
-            session.sendRequest(request)
-            secdata=[]
-            # Process received events
-            while(True):
-                # We provide timeout to give the chance for Ctrl+C handling:
-                ev = session.nextEvent(500)
-                for msg in ev:
-                    #print(msg)
-                    secdata.append(msg)
-                if ev.eventType() == blpapi.Event.RESPONSE:
-                    # Response completly received, so we could exit
-                    break
-        finally:
-            # Stop the session
-            session.stop()
-        #print(secdata)
-        self.dfbbg,self.secs=self.processBBGData(secdata,fld=flds[0],fill=fill,verbose=verbose)
-        if not self.bbgticker.empty:
-            self.secs=[s for s in self.bbgticker.bbgticker.values if s in self.secs]
-        self.dfbbg=self.dfbbg[self.secs]
-        return 
-     
-    def parseCmdLine(self):
-        parser = OptionParser(description="Retrieve reference data.")
-        parser.add_option("-a",
-                          "--ip",
-                          dest="host",
-                          help="server name or IP (default: %default)",
-                          metavar="ipAddress",
-                          default="localhost")
-        parser.add_option("-p",
-                          dest="port",
-                          type="int",
-                          help="server port (default: %default)",
-                          metavar="tcpPort",
-                          default=8194)
-    
-        (options, args) = parser.parse_args()
-        return options    
-    
-    def processBBGData(self,datas,fld='PX_LAST',fill='ffill',verbose=0):
-        count=0;
-        secs=[]
-        for data in datas:
-            if(data.hasElement('securityData')):
-                security=data.getElement('securityData').getElementValue('security')
-                if verbose == 1:
-                    print(security)
-                dates=[]
-                px=[]
-                if(data.getElement('securityData').hasElement('fieldData')):
-                    secs.append(security)
-                    vals=data.getElement('securityData').getElement('fieldData')
-                    for val in vals.values():
-                        if val.hasElement(fld):
-                            dates.append(val.getElementValue('date'))
-                            px.append(val.getElementValue(fld))
-                    if count==0:
-                        bbg_df=pd.DataFrame(data=px, index=dates,columns=[security])
-                    else:
-                        bbg_tmp=pd.DataFrame(data=px, index=dates,columns=[security])
-                        bbg_df=bbg_df.join(bbg_tmp,how='outer')
-                count=1
-                #print(bbg_df)
-                #print(count)
-                bbg_df.index=bbg_df.index.astype('datetime64[ns]')
-                if fill=='ffill':
-                    bbg_df=bbg_df[bbg_df.index.dayofweek < 5]
-                bbg_df.index.name='Date'
-        return bbg_df,secs
-    
-    
+    def populate(self):
+        self.dfbbg=self.readdfbbg('b.bbgData')
+        self.bbgticker,self.fxmult=self.readTickers1()
+        self.secs = self.dfbbg.columns.to_list()
+
     def dropCurr(self,curr):
         if isinstance(curr,list):
             for c in curr:
