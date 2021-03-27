@@ -96,8 +96,12 @@ try:
                     else :
                         st.error("Leg1 and Leg2 should be different")
 
-                if data =='Trade Structure':    
-                    trade = st.sidebar.text_input("Trade Structure", '2y 5y')
+                if data =='Trade Structure':
+                    instrument = st.sidebar.selectbox('Instrument: ',('Swap', 'Govt', 'FX'))                   
+                    if (instrument == 'Swap') or (instrument == 'Govt'):
+                        trade = st.sidebar.text_input("Trade Structure", '2y 5y')
+                    else:
+                        trade = st.sidebar.text_input("Trade Structure", '3M 6M')
                     trade_val = trade.split(" ")
                     changeType = st.sidebar.selectbox('Change Type: ',('Difference','Percentage'))     
                     ct=0    
@@ -105,14 +109,14 @@ try:
                         ct=1
                     
                     if len(trade_val)==1:
-                        spread = b.getbbg(type_='Swap'+trade_val[0],fill='ffill')
+                        spread = b.getbbg(type_=instrument+trade_val[0],fill='ffill',ccylist=countries)
                         spread.columns=b.bbgticker[b.bbgticker.bbgticker.isin(spread.columns.to_list())].Code.to_list()
                         
                     else:
-                        spread=b.getSpreadforAll(type_='Swap',tenor=trade_val)
+                        spread=b.getSpreadforAll(type_=instrument,tenor=trade_val,ccylist=countries)
                         spread.columns = [c[0:3] for c in spread.columns.to_list()]
-                    if not all_options:
-                        spread = spread[countries]
+                    #if not all_options:
+                    #    spread = spread[countries]
                     st.line_chart(spread.tail(count))
 
                     fig = plotRange(spread.tail(count),count=count,title=trade,filename='plots/range1.png')
