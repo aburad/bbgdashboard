@@ -35,7 +35,8 @@ try:
        'MYR', 'NZD', 'HUF', 'CZK', 'GBP', 'PLN']
 
 
-    dtype = st.sidebar.radio("Data: ",('Stored', 'Live'))  
+    #dtype = st.sidebar.radio("Data: ",('Stored', 'Live'))  
+    dtype = 'Stored'
     count = st.sidebar.number_input('No of Data points', value=1000)
     
     if dtype == 'Live':
@@ -63,7 +64,8 @@ try:
         
         b = bbgData()
         b.populate()
-        mkt_num = st.sidebar.radio("", ('Cross Mkt','Single Mkt')) 
+        #mkt_num = st.sidebar.radio("", ('Cross Mkt','Single Mkt')) 
+        mkt_num = 'Cross Mkt'
         if mkt_num=='Cross Mkt':
             countries = st.multiselect("Choose countries", curr, ["KRW", "USD"] )
             if not countries:
@@ -72,27 +74,36 @@ try:
                 all_options = st.checkbox("Select all markets")
                 if all_options:
                     countries = curr
-
-                realyld = st.sidebar.checkbox('Spread',value=False)
-                    
-                if realyld:
+                data = st.sidebar.selectbox('Explore: ',('Trade Structure', 'Spread', 'Data'))                   
+                if data=='Spread':
+                    availCols = b.getType(countries)
+                
                     col1, col2 = st.sidebar.beta_columns(2)
-                    yld1 =  col1.text_input("1st Leg", 'Policy')
-                    yld2 =  col2.text_input("2st Leg", 'Swap2y')
-    
-                    (ret,ry)=b.realyld(bond=yld2,cpi=yld1,filename='plots/realyld.png')
-                    ry = ry[countries]
-                    st.line_chart(ry.tail(count))
-                    image5 = Image.open('plots/realyld.png')
-                    st.image(image5,caption='Spread Z Score')    
-                    fig = plotBarBox(ry,count=count,spread_name=yld1+" "+yld2,charts=[1,0,0],labelcount=3)
-                    st.pyplot(fig)
-                    
-    
-                else:       
+                    yld1 = st.sidebar.selectbox('1st Leg: ',availCols)                   
+                    yld2 = st.sidebar.selectbox('2nd Leg: ',availCols)                   
+                    if yld1 != yld2:
+                            
+                        #yld1 =  col1.text_input("1st Leg", 'Policy')
+                        #yld2 =  col2.text_input("2st Leg", 'Swap2y')
+        
+                        (ret,ry)=b.realyld(bond=yld2,cpi=yld1,filename='plots/realyld.png',ccylist=countries)
+                        ry = ry[countries]
+                        st.line_chart(ry.tail(count))
+                        image5 = Image.open('plots/realyld.png')
+                        st.image(image5,caption='Spread Z Score')    
+                        fig = plotBarBox(ry,count=count,spread_name=yld1+" "+yld2,charts=[1,0,0],labelcount=3)
+                        st.pyplot(fig)
+                    else :
+                        st.error("Leg1 and Leg2 should be different")
+
+                if data =='Trade Structure':    
                     trade = st.sidebar.text_input("Trade Structure", '2y 5y')
-    
                     trade_val = trade.split(" ")
+                    changeType = st.sidebar.selectbox('Change Type: ',('Difference','Percentage'))     
+                    ct=0    
+                    if changeType=='Percentage':
+                        ct=1
+                    
                     if len(trade_val)==1:
                         spread = b.getbbg(type_='Swap'+trade_val[0],fill='ffill')
                         spread.columns=b.bbgticker[b.bbgticker.bbgticker.isin(spread.columns.to_list())].Code.to_list()
@@ -102,17 +113,52 @@ try:
                         spread.columns = [c[0:3] for c in spread.columns.to_list()]
                     if not all_options:
                         spread = spread[countries]
+                    st.line_chart(spread.tail(count))
+
                     fig = plotRange(spread.tail(count),count=count,title=trade,filename='plots/range1.png')
                     image4 = Image.open('plots/range1.png')
                     st.image(image4,caption='Historical Range')
                     fig = plotBarBox(spread,count=count,spread_name=trade,charts=[1,0,0],labelcount=3)
                     
                     st.pyplot(fig)
-                    plotChange(spread,n=[1,5,22],diff=0, title_prefix=trade,filename='plots/spreadchange.png',mult=1)
+                    plotChange(spread,n=[1,5,22],diff=ct, title_prefix=trade,filename='plots/spreadchange.png',mult=1)
                     image10 = Image.open('plots/spreadchange.png')
                     st.image(image10,caption='Change:')
+                if data == 'Data':
+                    availCols = b.getType(countries)
+                
+                    data = st.sidebar.selectbox('Available Fields: ',availCols)                   
+                    freq = st.sidebar.selectbox('Frequency: ',('D:Daily','W:Weekly' ,'M:Monthly', 'Q:Quarterly'))     
+                    changeType = st.sidebar.selectbox('Change Type: ',('Difference','Percentage'))     
+                    
 
+                    spread = b.gettsforCCYlist(type_=data,ccylist=countries,fill='ffill')
+                    spread = spread.resample(freq[0]).last()
+                    #spread.columns=b.bbgticker[b.bbgticker.bbgticker.isin(spread.columns.to_list())].Code.to_list()
                     st.line_chart(spread.tail(count))
+
+                    fig = plotRange(spread.tail(count),count=count,title=data,filename='plots/range1.png')
+                    image4 = Image.open('plots/range1.png')
+                    st.image(image4,caption='Historical Range')
+                    fig = plotBarBox(spread,count=count,spread_name=data,charts=[1,0,0],labelcount=3)
+                    
+                    st.pyplot(fig)
+                    if freq[0] =='D':
+                        changeDur = [1,5,22]
+                    elif freq[0] == 'W':
+                        changeDur = [1,4,12]
+                    elif freq[0]=='M':
+                        changeDur = [1,3,12]
+                    else:
+                        changeDur = [1,2,3]
+                    ct=0    
+                    if changeType=='Percentage':
+                        ct=1
+                    plotChange(spread,n=changeDur,diff=ct, title_prefix=data+ " "+freq+" ",filename='plots/spreadchange.png',mult=100)
+                    image10 = Image.open('plots/spreadchange.png')
+                    st.image(image10,caption='Change:')
+                    
+                    
         if mkt_num=='Single Mkt':
             country = st.selectbox("Choose countries", curr )
             t = bbgData()

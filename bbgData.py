@@ -321,6 +321,11 @@ class bbgData:
         
         return bbgticker,fxmult;
     
+    def getType(self,ccylist=['KRW','USD']):
+        valid = self.bbgticker[(self.bbgticker['Code'].isin( ccylist)) & (self.bbgticker['bbgticker'].isin(self.secs))]
+        valid=valid.pivot(index='Type',columns='Code',values='bbgticker').dropna()
+        return valid.index.to_list()
+    
     def populate(self,curr='',flds=['PX_LAST'],start='20150101',end='',freq='DAILY',maxDataPoints=5000,fill='ffill',verbose=0):
         self.readdfbbg('b.bbgData')
         self.bbgticker,self.fxmult=self.readTickers1()
@@ -338,10 +343,13 @@ class bbgData:
             self.bbgticker=self.bbgticker[self.bbgticker.Code!=curr]
         return tickersd    
     
-    def realyld(self,bond='Govt10y',cpi='CPIYOY',filename='korea/realyld.png'):
+    def realyld(self,bond='Govt10y',cpi='CPIYOY',filename='korea/realyld.png',ccylist=[]):
         retdata=pd.DataFrame();
         real_yld=pd.DataFrame();
-        tickers=self.bbgticker[ ( self.bbgticker['Type']==bond) | ( self.bbgticker['Type']==cpi)]
+        if len(ccylist)==0:
+            tickers=self.bbgticker[ ( self.bbgticker['Type']==bond) | ( self.bbgticker['Type']==cpi)]
+        else:
+            tickers=self.bbgticker[ (( self.bbgticker['Type']==bond) | ( self.bbgticker['Type']==cpi))& self.bbgticker['Code'].isin(ccylist)]    
         ticker_curr=tickers.pivot(index='Code',columns='Type')
         ticker_curr.columns = [ticker_curr.columns[0][1],ticker_curr.columns[1][1]]
         ticker_curr=ticker_curr[(ticker_curr[bond].isnull()==False)]
